@@ -1,11 +1,11 @@
-"""
-run.py
+# docker-compose.yml with a Postgres service, persistent volume, confirm it starts and you can connect"""
+# run.py
 
-Step 1: Fetch live stats from GitHub's public API and print them.
-No database, no scheduling yet.
-"""
+# Step 1: Fetch live stats from GitHub's public API and print them.
+# No database, no scheduling yet.
+# """
 
-from pipeline.fetch_stats import REPOS, fetch_repo_stats
+# from pipeline.fetch_stats import REPOS, fetch_repo_stats
 
 
 def main():
