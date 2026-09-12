@@ -7,6 +7,16 @@ No database, no scheduling yet - just fetch and print.
 
 import urllib.request
 import json
+import os
+
+# Try to load .env if python-dotenv is available (harmless if not present)
+try:
+    from dotenv import load_dotenv
+
+    # load .env from project root if present
+    load_dotenv()
+except Exception:
+    pass
 
 # The repos we're tracking
 REPOS = [
@@ -24,7 +34,14 @@ GITHUB_API_URL = "https://api.github.com/repos/{repo}"
 def fetch_repo_stats(repo: str) -> dict:
     """Fetch current stats for a single repo from the GitHub API."""
     url = GITHUB_API_URL.format(repo=repo)
-    req = urllib.request.Request(url, headers={"User-Agent": "track-pipeline"})
+    # Build headers and include Authorization if a token is available
+    headers = {"User-Agent": "track-pipeline"}
+    token = os.getenv("GITHUB_TOKEN") or os.getenv("GH_TOKEN")
+    if token:
+        # Use 'token' scheme for personal access tokens
+        headers["Authorization"] = f"token {token}"
+
+    req = urllib.request.Request(url, headers=headers)
     with urllib.request.urlopen(req, timeout=10) as response:
         data = json.loads(response.read().decode())
 
