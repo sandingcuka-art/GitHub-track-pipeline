@@ -1,6 +1,7 @@
 import io
 import json
 import unittest
+import urllib.error
 from contextlib import redirect_stdout
 from unittest.mock import Mock, patch
 
@@ -115,6 +116,43 @@ class FetchRepoStatsTests(unittest.TestCase):
         self.assertEqual([commit["sha"] for commit in commits], ["first-sha", "second-sha"])
         self.assertEqual(commits[0]["committed_at"], "2020-01-01T01:00:00Z")
         self.assertEqual(mock_urlopen.call_count, 2)
+
+    @patch("fetch_stats.time.sleep")
+    @patch("fetch_stats.urllib.request.urlopen")
+    def test_fetch_repo_stats_retries_temporary_github_failure(self, mock_urlopen, mock_sleep):
+        mock_response = Mock()
+        mock_response.__enter__ = Mock(return_value=mock_response)
+        mock_response.__exit__ = Mock(return_value=False)
+        mock_response.read.return_value = json.dumps({
+            "stargazers_count": 123,
+            "forks_count": 45,
+            "open_issues_count": 7,
+            "subscribers_count": 9,
+        }).encode("utf-8")
+        mock_urlopen.side_effect = [urllib.error.URLError("temporary outage"), mock_response]
+
+        result = fetch_stats.fetch_repo_stats("octocat/hello-world")
+
+        self.assertEqual(result["stars"], 123)
+        self.assertEqual(mock_urlopen.call_count, 2)
+        mock_sleep.assert_called_once_with(1)
+
+    @patch("fetch_stats.urllib.request.urlopen")
+    def test_fetch_repo_stats_reports_rate_limit_reset_time(self, mock_urlopen):
+        error = urllib.error.HTTPError(
+            "https://api.github.com/repos/octocat/hello-world",
+            403,
+            "Forbidden",
+            {"X-RateLimit-Remaining": "0", "X-RateLimit-Reset": "1234567890"},
+            None,
+        )
+        mock_urlopen.side_effect = error
+
+        with self.assertRaisesRegex(
+            fetch_stats.GitHubApiError,
+            "GitHub API rate limit reached .*reset_at=1234567890",
+        ):
+            fetch_stats.fetch_repo_stats("octocat/hello-world")
 
 
 if __name__ == "__main__":

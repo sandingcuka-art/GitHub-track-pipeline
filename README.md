@@ -111,5 +111,9 @@ Each run writes one `SUCCESS` or `FAILED` line per repository to stdout, then
 prints a success/failure summary. These logs are available in the GitHub Actions
 workflow output.
 
+Temporary GitHub network and 5xx failures are retried up to three times with
+exponential backoff. Rate-limit failures are logged clearly, including GitHub's
+rate-limit reset time when it is supplied by the API.
+
 (Full setup instructions coming as the project is built out.)
 tracking = WTC-LMWQG2VJ
