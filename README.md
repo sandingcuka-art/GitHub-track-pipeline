@@ -50,7 +50,7 @@ A daily data pipeline that tracks star, fork, and issue counts for a set of publ
 ## What it does
 
 1. **Extract** — pulls daily stats (stars, forks, open issues) for a list of public repos using the GitHub API
-2. **Load** — stores raw snapshots in a Postgres database (run via Docker)
+2. **Load** — upserts raw snapshots into Postgres using `(repo, snapshot_date)` as the unique key
 3. **Transform** — SQL models calculate day-over-day deltas and rolling averages
 4. **Visualize** — a simple dashboard shows growth trends across repos
 
