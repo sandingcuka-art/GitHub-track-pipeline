@@ -58,6 +58,28 @@ class FetchRepoStatsTests(unittest.TestCase):
         self.assertIn("stars=10", output)
         self.assertIn("stars=20", output)
 
+    @patch("fetch_stats.fetch_repo_stats")
+    def test_main_continues_when_one_of_eight_repos_fails(self, mock_fetch_repo_stats):
+        repos = [f"org/repo-{number}" for number in range(1, 9)]
+        mock_fetch_repo_stats.side_effect = [
+            {"repo": repo, "stars": number, "forks": 0, "open_issues": 0, "watchers": 0}
+            if number != 4
+            else ValueError("invalid response")
+            for number, repo in enumerate(repos, start=1)
+        ]
+
+        with patch.object(fetch_stats, "REPOS", repos):
+            buffer = io.StringIO()
+            with redirect_stdout(buffer):
+                fetch_stats.main()
+
+        output = buffer.getvalue()
+        self.assertIn("Fetching stats for 8 repos", output)
+        self.assertIn("FAILED to fetch org/repo-4: invalid response", output)
+        self.assertIn("org/repo-3", output)
+        self.assertIn("org/repo-5", output)
+        self.assertEqual(mock_fetch_repo_stats.call_count, 8)
+
 
 if __name__ == "__main__":
     unittest.main()
