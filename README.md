@@ -107,5 +107,9 @@ these repository secrets before enabling it:
 The workflow intentionally uses a persistent database URL instead of the local
 Docker database, because GitHub Actions runners are temporary.
 
+Each run writes one `SUCCESS` or `FAILED` line per repository to stdout, then
+prints a success/failure summary. These logs are available in the GitHub Actions
+workflow output.
+
 (Full setup instructions coming as the project is built out.)
 tracking = WTC-LMWQG2VJ

@@ -37,9 +37,10 @@ class RepoSnapshotTests(unittest.TestCase):
                 run.main()
 
         output = buffer.getvalue()
-        self.assertIn("FAILED to process org/broken: GitHub unavailable", output)
-        self.assertIn("org/first", output)
-        self.assertIn("org/last", output)
+        self.assertIn("SUCCESS repo=org/first", output)
+        self.assertIn("FAILED repo=org/broken error=GitHub unavailable", output)
+        self.assertIn("SUCCESS repo=org/last", output)
+        self.assertIn("Run complete: succeeded=2 failed=1", output)
         self.assertEqual(mock_fetch.call_count, 3)
         self.assertEqual(connection.rollback.call_count, 1)
         self.assertEqual(connection.close.call_count, 1)

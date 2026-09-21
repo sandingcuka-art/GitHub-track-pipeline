@@ -55,6 +55,7 @@ class FetchRepoStatsTests(unittest.TestCase):
         self.assertIn("Fetching stats for 2 repos", output)
         self.assertIn("alpha/repo", output)
         self.assertIn("beta/repo", output)
+        self.assertIn("SUCCESS repo=alpha/repo", output)
         self.assertIn("stars=10", output)
         self.assertIn("stars=20", output)
 

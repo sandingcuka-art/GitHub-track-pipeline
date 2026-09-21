@@ -120,6 +120,8 @@ def main():
     print(f"Fetching stats for {len(REPOS)} repos...\n")
 
     connection = get_db_connection()
+    succeeded = 0
+    failed = 0
     try:
         ensure_raw_repo_snapshots_table(connection)
 
@@ -128,8 +130,9 @@ def main():
                 stats = fetch_repo_stats(repo)
                 upsert_repo_snapshot(connection, stats)
                 connection.commit()
+                succeeded += 1
                 print(
-                    f"{stats['repo']:<30} "
+                    f"SUCCESS repo={stats['repo']} snapshot_date={date.today()} "
                     f"stars={stats['stars']:<8} "
                     f"forks={stats['forks']:<8} "
                     f"open_issues={stats['open_issues']:<6} "
@@ -139,9 +142,11 @@ def main():
                 # A failed fetch or write must not prevent the next repo from
                 # being collected. Roll back to clear a failed SQL transaction.
                 connection.rollback()
-                print(f"FAILED to process {repo}: {error}")
+                failed += 1
+                print(f"FAILED repo={repo} error={error}")
     finally:
         connection.close()
+        print(f"Run complete: succeeded={succeeded} failed={failed}")
 
 
 def parse_args():
