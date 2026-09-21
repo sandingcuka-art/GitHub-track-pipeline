@@ -80,6 +80,41 @@ class FetchRepoStatsTests(unittest.TestCase):
         self.assertIn("org/repo-5", output)
         self.assertEqual(mock_fetch_repo_stats.call_count, 8)
 
+    @patch("fetch_stats.urllib.request.urlopen")
+    def test_fetch_repo_commits_follows_pagination(self, mock_urlopen):
+        first_response = Mock()
+        first_response.__enter__ = Mock(return_value=first_response)
+        first_response.__exit__ = Mock(return_value=False)
+        first_response.read.return_value = json.dumps([{
+            "sha": "first-sha",
+            "commit": {
+                "author": {"date": "2020-01-01T00:00:00Z"},
+                "committer": {"date": "2020-01-01T01:00:00Z"},
+            },
+        }]).encode("utf-8")
+        first_response.headers = {
+            "Link": '<https://api.github.com/repos/octocat/hello-world/commits?per_page=100&page=2>; rel="next"'
+        }
+
+        second_response = Mock()
+        second_response.__enter__ = Mock(return_value=second_response)
+        second_response.__exit__ = Mock(return_value=False)
+        second_response.read.return_value = json.dumps([{
+            "sha": "second-sha",
+            "commit": {
+                "author": {"date": "2020-01-02T00:00:00Z"},
+                "committer": {"date": "2020-01-02T01:00:00Z"},
+            },
+        }]).encode("utf-8")
+        second_response.headers = {}
+        mock_urlopen.side_effect = [first_response, second_response]
+
+        commits = list(fetch_stats.fetch_repo_commits("octocat/hello-world"))
+
+        self.assertEqual([commit["sha"] for commit in commits], ["first-sha", "second-sha"])
+        self.assertEqual(commits[0]["committed_at"], "2020-01-01T01:00:00Z")
+        self.assertEqual(mock_urlopen.call_count, 2)
+
 
 if __name__ == "__main__":
     unittest.main()
