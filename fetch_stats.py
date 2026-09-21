@@ -96,7 +96,7 @@ def main():
         try:
             stats = fetch_repo_stats(repo)
             print(
-                f"{stats['repo']:<30} "
+                f"SUCCESS repo={stats['repo']} "
                 f"stars={stats['stars']:<8} "
                 f"forks={stats['forks']:<8} "
                 f"open_issues={stats['open_issues']:<6} "
