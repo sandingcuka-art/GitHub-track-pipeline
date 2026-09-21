@@ -94,5 +94,18 @@ To seed available commit history from GitHub, use a personal access token in
 This writes commit SHAs and author/committer timestamps to `raw_repo_commits`.
 The `(repo, sha)` key makes the backfill safe to rerun.
 
+## Daily automation
+
+`.github/workflows/daily-fetch.yml` runs the fetch-and-upsert job every day at
+02:17 UTC and can also be started manually from GitHub's **Actions** tab. Add
+these repository secrets before enabling it:
+
+- `DATABASE_URL` — a connection string for a persistent Postgres database.
+- `PIPELINE_GITHUB_TOKEN` — a GitHub personal access token used for API rate
+  limits.
+
+The workflow intentionally uses a persistent database URL instead of the local
+Docker database, because GitHub Actions runners are temporary.
+
 (Full setup instructions coming as the project is built out.)
 tracking = WTC-LMWQG2VJ

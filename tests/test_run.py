@@ -44,7 +44,7 @@ class RepoSnapshotTests(unittest.TestCase):
         self.assertEqual(connection.rollback.call_count, 1)
         self.assertEqual(connection.close.call_count, 1)
 
-                                                                                                                                                                                                                                     @patch("run.fetch_repo_commits")
+    @patch("run.fetch_repo_commits")
     def test_seed_commit_history_upserts_each_commit(self, mock_fetch_commits):
         connection = MagicMock()
         mock_fetch_commits.return_value = [
