@@ -1,0 +1,39 @@
+name: Daily GitHub stats fetch
+
+on:
+  schedule:
+    # GitHub Actions schedules are evaluated in UTC.
+    - cron: "17 02 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: daily-github-stats-fetch
+  cancel-in-progress: false
+
+jobs:
+  fetch-and-store:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      GITHUB_TOKEN: ${{ secrets.PIPELINE_GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Verify required configuration
+        run: |
+          test -n "$DATABASE_URL" || (echo "DATABASE_URL secret is required" && exit 1)
+          test -n "$GITHUB_TOKEN" || (echo "PIPELINE_GITHUB_TOKEN secret is required" && exit 1)
+
+      - name: Fetch and upsert repository stats
+        run: python run.py
