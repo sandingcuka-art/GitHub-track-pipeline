@@ -6,9 +6,11 @@ No database, no scheduling yet - just fetch and print.
 """
 
 import urllib.request
+import urllib.error
 import json
 import os
 import re
+import time
 
 # Try to load .env if python-dotenv is available (harmless if not present)
 try:
@@ -33,6 +35,12 @@ REPOS = [
 
 GITHUB_API_URL = "https://api.github.com/repos/{repo}"
 GITHUB_COMMITS_API_URL = "https://api.github.com/repos/{repo}/commits?per_page=100"
+MAX_GITHUB_API_ATTEMPTS = 3
+RETRYABLE_HTTP_STATUS_CODES = {500, 502, 503, 504}
+
+
+class GitHubApiError(RuntimeError):
+    """A GitHub API failure with context suitable for pipeline logs."""
 
 
 def github_headers() -> dict:
@@ -53,12 +61,50 @@ def next_page_url(link_header: str | None) -> str | None:
     return match.group(1) if match else None
 
 
+def fetch_github_json(url: str, attempts: int = MAX_GITHUB_API_ATTEMPTS):
+    """Fetch GitHub JSON with retries for temporary network/server failures."""
+    for attempt in range(1, attempts + 1):
+        try:
+            req = urllib.request.Request(url, headers=github_headers())
+            with urllib.request.urlopen(req, timeout=30) as response:
+                return json.loads(response.read().decode()), response.headers
+        except urllib.error.HTTPError as error:
+            headers = error.headers or {}
+            rate_limited = error.code == 429 or (
+                error.code == 403 and headers.get("X-RateLimit-Remaining") == "0"
+            )
+            if rate_limited:
+                reset_at = headers.get("X-RateLimit-Reset")
+                reset_message = f"; reset_at={reset_at}" if reset_at else ""
+                error.close()
+                raise GitHubApiError(
+                    f"GitHub API rate limit reached (HTTP {error.code}){reset_message}"
+                ) from error
+
+            retryable = error.code in RETRYABLE_HTTP_STATUS_CODES
+            error_message = f"GitHub API returned HTTP {error.code}"
+            error.close()
+        except urllib.error.URLError as error:
+            retryable = True
+            error_message = f"GitHub API is unavailable: {error.reason}"
+
+        if not retryable or attempt == attempts:
+            raise GitHubApiError(
+                f"{error_message} after {attempt} attempt(s) for {url}"
+            ) from error
+
+        delay_seconds = 2 ** (attempt - 1)
+        print(
+            f"RETRY github_api attempt={attempt + 1}/{attempts} "
+            f"delay_seconds={delay_seconds} error={error_message}"
+        )
+        time.sleep(delay_seconds)
+
+
 def fetch_repo_stats(repo: str) -> dict:
     """Fetch current stats for a single repo from the GitHub API."""
     url = GITHUB_API_URL.format(repo=repo)
-    req = urllib.request.Request(url, headers=github_headers())
-    with urllib.request.urlopen(req, timeout=10) as response:
-        data = json.loads(response.read().decode())
+    data, _ = fetch_github_json(url)
 
     return {
         "repo": repo,
@@ -74,10 +120,8 @@ def fetch_repo_commits(repo: str):
     url = GITHUB_COMMITS_API_URL.format(repo=repo)
 
     while url:
-        req = urllib.request.Request(url, headers=github_headers())
-        with urllib.request.urlopen(req, timeout=30) as response:
-            commits = json.loads(response.read().decode())
-            url = next_page_url(response.headers.get("Link"))
+        commits, headers = fetch_github_json(url)
+        url = next_page_url(headers.get("Link"))
 
         for commit in commits:
             metadata = commit["commit"]
