@@ -44,6 +44,31 @@ class RepoSnapshotTests(unittest.TestCase):
         self.assertEqual(connection.rollback.call_count, 1)
         self.assertEqual(connection.close.call_count, 1)
 
+                                                                                                                                                                                                                                     @patch("run.fetch_repo_commits")
+    def test_seed_commit_history_upserts_each_commit(self, mock_fetch_commits):
+        connection = MagicMock()
+        mock_fetch_commits.return_value = [
+            {
+                "repo": "org/project",
+                "sha": "abc123",
+                "authored_at": "2020-01-01T00:00:00Z",
+                "committed_at": "2020-01-01T01:00:00Z",
+            },
+            {
+                "repo": "org/project",
+                "sha": "def456",
+                "authored_at": "2020-01-02T00:00:00Z",
+                "committed_at": "2020-01-02T01:00:00Z",
+            },
+        ]
+
+        run.seed_commit_history(connection, repos=["org/project"])
+
+        executed_statements = [call.args[0] for call in connection.cursor.return_value.__enter__.return_value.execute.call_args_list]
+        self.assertTrue(any("PRIMARY KEY (repo, sha)" in statement for statement in executed_statements))
+        self.assertEqual(sum("ON CONFLICT (repo, sha) DO UPDATE" in statement for statement in executed_statements), 2)
+        self.assertGreaterEqual(connection.commit.call_count, 2)
+
 
 if __name__ == "__main__":
     unittest.main()

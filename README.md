@@ -84,5 +84,15 @@ docker-compose up -d
 python pipeline/fetch_stats.py
 ```
 
+To seed available commit history from GitHub, use a personal access token in
+`.env` and run:
+
+```bash
+.venv/bin/python run.py --seed-commit-history
+```
+
+This writes commit SHAs and author/committer timestamps to `raw_repo_commits`.
+The `(repo, sha)` key makes the backfill safe to rerun.
+
 (Full setup instructions coming as the project is built out.)
 tracking = WTC-LMWQG2VJ
