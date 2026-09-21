@@ -26,6 +26,8 @@ REPOS = [
     "facebook/react",
     "langchain-ai/langchain",
     "Holang-1/Car-Dealership",
+    "apache/airflow",
+    "dbt-labs/dbt-core",
 ]
 
 GITHUB_API_URL = "https://api.github.com/repos/{repo}"
@@ -67,7 +69,9 @@ def main():
                 f"open_issues={stats['open_issues']:<6} "
                 f"watchers={stats['watchers']}"
             )
-        except (urllib.error.URLError, urllib.error.HTTPError, KeyError) as e:
+        # A bad response from one repository must not prevent the remaining
+        # repositories from being collected.
+        except Exception as e:
             print(f"FAILED to fetch {repo}: {e}")
 
 

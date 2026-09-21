@@ -62,6 +62,8 @@ A daily data pipeline that tracks star, fork, and issue counts for a set of publ
 - facebook/react
 - langchain-ai/langchain
 - Holang-1/Car-Dealership
+- apache/airflow
+- dbt-labs/dbt-core
 
 ## Tech stack
 
