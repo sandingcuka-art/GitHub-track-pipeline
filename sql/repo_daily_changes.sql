@@ -5,6 +5,8 @@ WITH snapshots_with_previous_values AS (
         snapshot_date,
         stars,
         forks,
+        open_issues,
+        watchers,
         LAG(stars) OVER (
             PARTITION BY repo
             ORDER BY snapshot_date
@@ -20,6 +22,8 @@ SELECT
     snapshot_date,
     stars,
     forks,
+    open_issues,
+    watchers,
     stars - previous_stars AS stars_day_over_day_change,
     forks - previous_forks AS forks_day_over_day_change,
     AVG(stars - previous_stars) OVER (
