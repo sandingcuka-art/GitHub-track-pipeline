@@ -115,5 +115,14 @@ Temporary GitHub network and 5xx failures are retried up to three times with
 exponential backoff. Rate-limit failures are logged clearly, including GitHub's
 rate-limit reset time when it is supplied by the API.
 
+## Daily repository changes
+
+Run `sql/repo_daily_changes.sql` against Postgres to create the
+`repo_daily_changes` view. It uses `LAG` partitioned by `repo` and ordered by
+`snapshot_date` to calculate `stars_day_over_day_change` and
+`forks_day_over_day_change`, then uses a seven-row window to calculate
+`stars_growth_7_day_rolling_average`. The first snapshot for a repository has
+`NULL` changes because it has no prior observation.
+
 (Full setup instructions coming as the project is built out.)
 tracking = WTC-LMWQG2VJ
