@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   db:
     image: postgres:16
@@ -17,6 +15,29 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  fetcher:
+    build: .
+    command: python scheduled_fetch.py
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@db:5432/testdb
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  dashboard:
+    build: .
+    command: streamlit run dashboard.py --server.address=0.0.0.0
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@db:5432/testdb
+    ports:
+      - "8501:8501"
+    depends_on:
+      db:
+        condition: service_healthy
 
 volumes:
   db_data:
