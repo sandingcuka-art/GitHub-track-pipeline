@@ -129,18 +129,19 @@ repository has `NULL` changes because it has no prior observation.
 
 ## Star growth dashboard
 
-Start the database and collect daily snapshots, then launch the dashboard:
+Start Postgres, the fetch scheduler, and the dashboard together:
 
 ```bash
 docker compose up -d
-python run.py
-streamlit run dashboard.py
 ```
 
-The dashboard reads `raw_repo_snapshots` from `DATABASE_URL` when set, or from
-the local Docker Compose database settings by default. Use the repository
-selector to compare star totals over time. The chart refreshes its cached data
-every five minutes; restart the Streamlit app or wait for the cache to expire
-to see newer snapshots.
-tracking = WTC-LMWQG2VJ
+The fetcher collects a snapshot when it starts and then daily at 02:17 South
+Africa time (`Africa/Johannesburg`). Set
+`GITHUB_TOKEN` in the shell or a project `.env` file to authenticate GitHub API
+requests and improve rate limits. The dashboard is available at
+<http://localhost:8501> and reads `raw_repo_snapshots` from Postgres. Its cached
+data refreshes every five minutes.
 
+Use `docker compose logs -f fetcher dashboard` to view service logs and
+`docker compose down` to stop the services.
+tracking = WTC-LMWQG2VJ

@@ -1,14 +1,17 @@
-"""Run the stats pipeline every day at 02:17 UTC."""
+"""Run the stats pipeline every day at 02:17 South Africa time."""
 
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 from run import main as fetch_stats
 
+SOUTH_AFRICA_TIME = ZoneInfo("Africa/Johannesburg")
+
 
 def seconds_until_next_run(now: datetime | None = None) -> float:
-    """Return seconds until the next 02:17 UTC run."""
-    now = now or datetime.now(timezone.utc)
+    """Return seconds until the next 02:17 Africa/Johannesburg run."""
+    now = now or datetime.now(SOUTH_AFRICA_TIME)
     next_run = now.replace(hour=2, minute=17, second=0, microsecond=0)
     if next_run <= now:
         next_run += timedelta(days=1)
