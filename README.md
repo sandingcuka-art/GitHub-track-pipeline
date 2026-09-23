@@ -126,5 +126,21 @@ calculates `stars_growth_7_day_rolling_average`. The first snapshot for a
 repository has `NULL` changes because it has no prior observation.
 
 (Full setup instructions coming as the project is built out.)
+
+## Star growth dashboard
+
+Start the database and collect daily snapshots, then launch the dashboard:
+
+```bash
+docker compose up -d
+python run.py
+streamlit run dashboard.py
+```
+
+The dashboard reads `raw_repo_snapshots` from `DATABASE_URL` when set, or from
+the local Docker Compose database settings by default. Use the repository
+selector to compare star totals over time. The chart refreshes its cached data
+every five minutes; restart the Streamlit app or wait for the cache to expire
+to see newer snapshots.
 tracking = WTC-LMWQG2VJ
 
