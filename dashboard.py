@@ -23,7 +23,7 @@ def load_star_history(database_url: str | None) -> pd.DataFrame:
 
     try:
         return pd.read_sql_query(
-            "SELECT repo, snapshot_date, stars "
+            "SELECT repo, snapshot_date, stars, forks, open_issues, watchers "
             "FROM raw_repo_snapshots ORDER BY snapshot_date, repo",
             connection,
             parse_dates=["snapshot_date"],
@@ -61,15 +61,45 @@ def main():
     ).sort_index()
     st.line_chart(chart_data, y_label="Stars", x_label="Snapshot date")
 
-    latest = visible_history.sort_values("snapshot_date").groupby("repo").tail(1)
-    st.subheader("Latest snapshot")
-    st.dataframe(
-        latest[["repo", "snapshot_date", "stars"]]
-        .sort_values("stars", ascending=False)
-        .reset_index(drop=True),
-        use_container_width=True,
-        hide_index=True,
+    st.subheader("Repository rankings")
+    ranking_by = st.selectbox(
+        "Rank by",
+        ["Star growth rate (stars/day)", "Stars", "Forks", "Open issues", "Watchers"],
     )
+    growth_period = st.selectbox("Growth period", ["7 days", "30 days", "All history"])
+
+    ordered = visible_history.sort_values("snapshot_date")
+    latest = ordered.groupby("repo", as_index=False).tail(1).set_index("repo")
+    if growth_period == "All history":
+        starting = ordered.groupby("repo", as_index=False).head(1).set_index("repo")
+    else:
+        days = int(growth_period.split()[0])
+        cutoff = ordered["snapshot_date"].max() - pd.Timedelta(days=days)
+        in_period = ordered[ordered["snapshot_date"] >= cutoff]
+        starting = in_period.groupby("repo", as_index=False).head(1).set_index("repo")
+
+    ranking = latest[["snapshot_date", "stars", "forks", "open_issues", "watchers"]].copy()
+    common_repos = ranking.index.intersection(starting.index)
+    elapsed_days = (
+        latest.loc[common_repos, "snapshot_date"] - starting.loc[common_repos, "snapshot_date"]
+    ).dt.total_seconds() / 86400
+    ranking["Star growth (stars/day)"] = pd.NA
+    growth = (
+        latest.loc[common_repos, "stars"] - starting.loc[common_repos, "stars"]
+    ) / elapsed_days.where(elapsed_days > 0)
+    ranking.loc[common_repos, "Star growth (stars/day)"] = growth
+
+    sort_columns = {
+        "Star growth rate (stars/day)": "Star growth (stars/day)",
+        "Stars": "stars",
+        "Forks": "forks",
+        "Open issues": "open_issues",
+        "Watchers": "watchers",
+    }
+    ranking = ranking.sort_values(sort_columns[ranking_by], ascending=False, na_position="last")
+    ranking.index.name = "Repository"
+    st.caption("Growth is the change in stars divided by elapsed calendar days in the selected period.")
+    st.dataframe(ranking.reset_index(), use_container_width=True, hide_index=True)
 
 
 if __name__ == "__main__":
